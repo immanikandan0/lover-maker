@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Galaxy Intro</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:
+        radial-gradient(circle at 30% 40%, rgba(0,20,60,0.4), transparent 60%),
+        radial-gradient(circle at 70% 60%, rgba(0,10,40,0.4), transparent 60%),
+        linear-gradient(to bottom, #020111 0%, #000000 100%);
+}
+
+canvas{
+    position:absolute;
+    top:0;
+    left:0;
+}
+</style>
+</head>
+<body>
+
+<canvas id="bg"></canvas>
+<canvas id="fg"></canvas>
+
+<script>
+const bgCanvas = document.getElementById("bg");
+const bgCtx = bgCanvas.getContext("2d");
+
+const fgCanvas = document.getElementById("fg");
+const fgCtx = fgCanvas.getContext("2d");
+
+bgCanvas.width = fgCanvas.width = window.innerWidth;
+bgCanvas.height = fgCanvas.height = window.innerHeight;
+
+/* ================= BACKGROUND GALAXY ================= */
+fgCtx.font = "bold 150px Arial";
+fgCtx.fillStyle = "white";
+fgCtx.textAlign = "center";
+
+// First line
+fgCtx.fillText("I LOVE YOU", fgCanvas.width/2, fgCanvas.height/2);
+
+// Draw heart over the word LOVE center
+fgCtx.fillStyle = "red";
+fgCtx.font = "bold 160px Arial";
+fgCtx.fillText("❤", fgCanvas.width/2, fgCanvas.height/2 - 10);
+
+
+let bgStars = [];
+
+class BgStar{
+    constructor(){
+        this.angle = Math.random()*Math.PI*2;
+        this.radius = Math.random()*600;
+        this.size = Math.random()*2;
+        this.speed = Math.random()*0.0008 + 0.0002;
+    }
+
+    update(){
+        this.angle += this.speed;
+        this.x = bgCanvas.width/2 + Math.cos(this.angle)*this.radius;
+        this.y = bgCanvas.height/2 + Math.sin(this.angle)*this.radius;
+    }
+
+    draw(){
+        bgCtx.fillStyle = "#1e90ff";
+        bgCtx.beginPath();
+        bgCtx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        bgCtx.fill();
+    }
+}
+
+for(let i=0;i<1500;i++){
+    bgStars.push(new BgStar());
+}
+
+function animateBackground(){
+    bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+    bgStars.forEach(star=>{
+        star.update();
+        star.draw();
+    });
+    requestAnimationFrame(animateBackground);
+}
+
+animateBackground();
+
+/* ================= FOREGROUND PARTICLES ================= */
+
+let particles = [];
+let textPositions = [];
+let mode = "galaxy";
+let triggered = false;
+
+window.addEventListener("mousemove", ()=>{
+    if(!triggered){
+        triggered = true;
+        mode = "break";
+        setTimeout(()=> mode="text", 1000);
+    }
+});
+
+class Particle{
+    constructor(x,y){
+        this.baseX = x;
+        this.baseY = y;
+        this.x = fgCanvas.width/2;
+        this.y = fgCanvas.height/2;
+        this.size = 2;
+        this.angle = Math.random()*Math.PI*2;
+        this.radius = Math.random()*300;
+        this.speed = Math.random()*0.02 + 0.01;
+    }
+
+    update(){
+        if(mode==="galaxy"){
+            this.angle += this.speed;
+            this.x = fgCanvas.width/2 + Math.cos(this.angle)*this.radius;
+            this.y = fgCanvas.height/2 + Math.sin(this.angle)*this.radius;
+        }
+
+        if(mode==="break"){
+            this.x += (Math.random()-0.5)*30;
+            this.y += (Math.random()-0.5)*30;
+        }
+
+        if(mode==="text"){
+            this.x += (this.baseX - this.x)/15;
+            this.y += (this.baseY - this.y)/15;
+        }
+    }
+
+    draw(){
+        fgCtx.fillStyle = "#00bfff";
+        fgCtx.shadowColor = "#00bfff";
+        fgCtx.shadowBlur = 12;
+        fgCtx.beginPath();
+        fgCtx.arc(this.x,this.y,this.size,0,Math.PI*2);
+        fgCtx.fill();
+    }
+}
+
+function createText(){
+    fgCtx.font = "bold 150px Arial";
+    fgCtx.fillStyle = "white";
+    fgCtx.textAlign = "center";
+    fgCtx.fillText("", fgCanvas.width/2, fgCanvas.height/2);
+
+    const data = fgCtx.getImageData(0,0,fgCanvas.width,fgCanvas.height);
+
+    for(let y=0;y<data.height;y+=6){
+        for(let x=0;x<data.width;x+=6){
+            let index = (y*4*data.width)+(x*4);
+            if(data.data[index+3] > 128){
+                textPositions.push({x:x,y:y});
+            }
+        }
+    }
+
+    fgCtx.clearRect(0,0,fgCanvas.width,fgCanvas.height);
+}
+
+function init(){
+    createText();
+    particles = [];
+    textPositions.forEach(pos=>{
+        particles.push(new Particle(pos.x,pos.y));
+    });
+}
+
+function animateForeground(){
+    fgCtx.clearRect(0,0,fgCanvas.width,fgCanvas.height);
+    particles.forEach(p=>{
+        p.update();
+        p.draw();
+    });
+    requestAnimationFrame(animateForeground);
+}
+
+init();
+animateForeground();
+
+window.addEventListener("resize",()=>{
+    bgCanvas.width = fgCanvas.width = window.innerWidth;
+    bgCanvas.height = fgCanvas.height = window.innerHeight;
+});
+
+</script>
+
+</body>
+</html>
